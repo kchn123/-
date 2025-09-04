@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>私選・谷川俊太郎デジタル詩集</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div id="reader" class="reader" aria-label="詩集リーダー">
+    <header class="topbar">
+      <div class="title" id="poemTitle">タイトル</div>
+      <button id="tocBtn" class="btn">目次</button>
+    </header>
+
+    <main id="page" class="page" tabindex="0" aria-live="polite"></main>
+
+    <footer class="bottombar">
+      <button id="prevBtn" class="btn">前へ</button>
+      <div id="progress" class="progress">1 / 1</div>
+      <button id="nextBtn" class="btn">次へ</button>
+    </footer>
+
+    <nav id="toc" class="toc hidden" aria-label="目次"></nav>
+
+    <!-- 画面タップ/スワイプ用の透明ゾーン -->
+    <div id="tapLeft" class="tapzone left" aria-hidden="true"></div>
+    <div id="tapRight" class="tapzone right" aria-hidden="true"></div>
+  </div>
+  <script src="./app.js"></script>
+</body>
+</html>

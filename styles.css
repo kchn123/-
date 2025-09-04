@@ -1,0 +1,97 @@
+:root {
+  --bg: #f7f5f2;
+  --ink: #222;
+  --muted: #777;
+  --panel: #ffffffc0;
+  --maxw: 820px; /* iPadでも読みやすい幅 */
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  font-family: "Hiragino Mincho ProN", "Yu Mincho", "Hiragino Kaku Gothic ProN", serif;
+}
+
+.reader {
+  min-height: 100dvh;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  place-items: stretch;
+}
+
+.topbar, .bottombar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 16px;
+  background: var(--panel);
+  backdrop-filter: blur(6px);
+  position: sticky;
+}
+
+.topbar { top: 0; }
+.bottombar { bottom: 0; }
+
+.title { font-weight: 600; }
+
+.btn {
+  border: 1px solid #ddd; background: #fff; padding: 6px 10px; border-radius: 8px; cursor: pointer;
+}
+.btn:active { transform: translateY(1px); }
+
+.page {
+  margin: 0 auto;
+  width: min(100%, var(--maxw));
+  padding: 20px 24px;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 6px 30px rgba(0,0,0,.08);
+  /* 縦書き（右から左へ） */
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+  line-height: 2;
+  /* 見出し・本文の余白感 */
+  display: block;
+  overflow: auto;
+}
+
+/* 詩の本文ブロックの“和書らしい”内側余白感を確保 */
+.page .poem {
+  margin: 0 auto;
+  padding-block: 20%;
+  padding-inline: 10%;
+}
+
+/* 目次（ポップオーバー風） */
+.toc {
+  position: fixed; inset: 0;
+  background: rgba(255,255,255,.96);
+  padding: 24px;
+  overflow: auto;
+}
+.toc.hidden { display: none; }
+.toc h2 { margin-block: 0 16px; }
+.toc ul { list-style: none; margin: 0; padding: 0; columns: 2; gap: 24px; }
+.toc li { margin: 8px 0; }
+.toc button {
+  width: 100%; text-align: left; border: none; background: transparent; padding: 8px; border-radius: 8px;
+}
+.toc button:hover { background: #f0f0f0; }
+
+/* タップゾーン（左=次へ / 右=前へ） */
+.tapzone {
+  position: fixed; top: 0; bottom: 0; width: 35%;
+}
+.tapzone.left  { left: 0; }
+.tapzone.right { right: 0; }
+
+/* プログレス */
+.progress { color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* iPadフルスクリーンでも美しく */
+@supports (padding: env(safe-area-inset-bottom)) {
+  .topbar    { padding-top: calc(10px + env(safe-area-inset-top)); }
+  .bottombar { padding-bottom: calc(10px + env(safe-area-inset-bottom)); }
+}
