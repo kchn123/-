@@ -97,6 +97,10 @@ body {
 }
 /* ===== 見開きレイアウト（横向き） ===== */
 @media (orientation: landscape) {
+   .page { 
+    writing-mode: horizontal-tb;
+    text-orientation: mixed; /* おまじない。無くてもOK */
+  }
   .page {
     background: transparent;
     box-shadow: none;
