@@ -152,5 +152,63 @@ body {
     padding-block: 20%;
     padding-inline: 10%;
   }
+}/* === スワイプ専用運用：ボタン・タップゾーンは隠す === */
+.bottombar, .topbar .btn, .tapzone { display: none !important; }
+
+/* === 画面全体の縦スクロールを止める（横スワイプだけ） === */
+html, body { overscroll-behavior: contain; touch-action: pan-x; }
+.reader { height: 100dvh; overflow: hidden; }
+
+/* === 横向き：見開きレイアウト === */
+@media (orientation: landscape) {
+  /* 見開き時は親を横書き方向に戻す & 横並び */
+  .page.spread {
+    writing-mode: horizontal-tb;  /* 親は横方向（flex-rowが横になる） */
+    text-orientation: mixed;
+    display: flex;
+    flex-direction: row;
+    gap: 24px;                    /* のど幅 */
+    margin: 0 auto;
+    width: min(100%, var(--maxw));
+    height: 100%;
+    justify-content: center;
+    background: transparent;
+    box-shadow: none;
+    padding: 0;
+    overflow: hidden;             /* 縦スクロール禁止 */
+  }
+
+  .leaf {
+    flex: 1 1 0;
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 6px 30px rgba(0,0,0,.08);
+    padding: 20px 24px;
+    writing-mode: vertical-rl;    /* 子ページは縦書き */
+    text-orientation: upright;
+    line-height: 2;
+    position: relative;
+    height: 86vh;                 /* 上下に余白を確保した固定高さ */
+    overflow: hidden;             /* 溢れを隠す（字詰めはJSで調整） */
+  }
+
+  /* のど（内側）の陰影 */
+  .leaf.right::after, .leaf.left::after {
+    content: ""; position: absolute; top:0; bottom:0; width:24px; pointer-events:none;
+  }
+  .leaf.right::after { left:-24px;  background: radial-gradient(ellipse at left, rgba(0,0,0,.12), rgba(0,0,0,0) 60%); }
+  .leaf.left::after  { right:-24px; background: radial-gradient(ellipse at right, rgba(0,0,0,.12), rgba(0,0,0,0) 60%); }
+
+  .leaf .poem { margin: 0 auto; padding-block: 20%; padding-inline: 10%; }
 }
+
+/* === 縦向き：今回は非対応の注意表示 === */
+@media (orientation: portrait) {
+  .page { display: none; }
+  body::before {
+    content: "横向きでご覧ください";
+    display: grid; place-items: center; height: 100dvh; color: #666;
+  }
+}
+
 

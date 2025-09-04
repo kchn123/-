@@ -18,7 +18,7 @@ init();
 
 async function init() {
   try {
-    const res = await fetch('./poems.json', { cache: 'no-store' });
+    const res = await fetch('./poems.json?v=10', { cache: 'no-store' });
     state.poems = await res.json();
   } catch (e) {
     console.error(e);
@@ -31,64 +31,76 @@ async function init() {
 function render() {
   const p = clampIndex(state.index);
   const poem = state.poems[p];
-
   titleEl.textContent = poem.title || "無題";
 
-  // 横向き＝見開き（右→左）。縦向き＝1ページ。
-  if (window.innerWidth > window.innerHeight) {
-    // 見開き用に本文をざっくり二分割（行数ベース）
-    const halves = splitBody(poem.body);
-    pageEl.classList.add('spread');
-    pageEl.innerHTML = `
-      <!-- 右ページ（先に読む） -->
-      <section class="leaf right">
-        <article class="poem" role="article" aria-label="${escapeAttr(poem.title)}">
-          <h1 style="margin-block:0 1em; font-size:1.1rem; letter-spacing:.05em;">${escapeHTML(poem.title)}</h1>
-          <div style="white-space:pre-wrap;">${escapeHTML(halves.right)}</div>
-        </article>
-      </section>
+  // 見開きクラスを常時付与（横向き運用）
+  pageEl.classList.add('spread');
 
-      <!-- 左ページ（次に読む）。空なら非表示 -->
-      <section class="leaf left" style="${halves.left ? '' : 'display:none;'}">
-        <article class="poem" role="article" aria-label="${escapeAttr(poem.title)}（続き）">
-          <div style="white-space:pre-wrap;">${escapeHTML(halves.left)}</div>
-        </article>
-      </section>
-    `;
-  } else {
-    // 1ページ表示（これまで通り）
-    pageEl.classList.remove('spread');
-    pageEl.innerHTML = `
-      <article class="poem" role="article" aria-label="${escapeAttr(poem.title)}">
+  // 本文を二分割（右→左）。短文は右だけ。
+  const halves = splitBody(poem.body);
+
+  pageEl.innerHTML = `
+    <section class="leaf right">
+      <article class="poem" aria-label="${escapeAttr(poem.title)}">
         <h1 style="margin-block:0 1em; font-size:1.1rem; letter-spacing:.05em;">${escapeHTML(poem.title)}</h1>
-        <div style="white-space:pre-wrap;">${escapeHTML(poem.body)}</div>
+        <div class="poemBodyR" style="white-space:pre-wrap;">${escapeHTML(halves.right)}</div>
       </article>
-    `;
-  }
+    </section>
+    <section class="leaf left" style="${halves.left ? '' : 'display:none;'}">
+      <article class="poem" aria-label="${escapeAttr(poem.title)}（続き）">
+        <div class="poemBodyL" style="white-space:pre-wrap;">${escapeHTML(halves.left)}</div>
+      </article>
+    </section>
+  `;
+
+  // 文字量が多い場合でも縦スクロールせず、字サイズを自動微調整
+  fitToLeaf(document.querySelector('.leaf.right .poem'));
+  if (halves.left) fitToLeaf(document.querySelector('.leaf.left .poem'));
 
   progEl.textContent = `${p+1} / ${state.poems.length}`;
   buildTOC();
 }
+
 function splitBody(body="") {
   const lines = body.replace(/\r\n?/g, "\n").split("\n");
   if (lines.length <= 12) {
     // 短い詩は右ページだけに載せて左は空
     return { right: body, left: "" };
   }
-  // できるだけ行の途中で切らないで中央付近で分割
+  // 中央付近で気持ちよく切る（空行/句点の近くを優先）
   const mid = Math.ceil(lines.length / 2);
-  // 句読点や空行の近くで優先的に切る（簡易ロジック）
   let cut = mid;
   for (let d = 0; d < Math.min(6, lines.length); d++) {
     const i1 = mid - d, i2 = mid + d;
-    const ok1 = i1 > 1 && /^[\s　]*$/.test(lines[i1]) || /[。．！？!.?、，,：:；;]$/.test((lines[i1-1]||"").trim());
-    const ok2 = i2 < lines.length-1 && /^[\s　]*$/.test(lines[i2]) || /[。．！？!.?、，,：:；;]$/.test((lines[i2-1]||"").trim());
+    const ok1 = i1 > 1 && (/^[\s　]*$/.test(lines[i1]) || /[。．！？!.?、，,：:；;]$/.test((lines[i1-1]||"").trim()));
+    const ok2 = i2 < lines.length-1 && (/^[\s　]*$/.test(lines[i2]) || /[。．！？!.?、，,：:；;]$/.test((lines[i2-1]||"").trim()));
     if (ok1) { cut = i1; break; }
     if (ok2) { cut = i2; break; }
   }
   const right = lines.slice(0, cut).join("\n").trimEnd();
   const left  = lines.slice(cut).join("\n").trimStart();
   return { right, left };
+}
+
+function fitToLeaf(poemEl) {
+  if (!poemEl) return;
+  const leaf = poemEl.closest('.leaf');
+  if (!leaf) return;
+  const bodyEl = poemEl;
+
+  // 基準フォントサイズ（px）を徐々に下げる
+  let size = 18;          // 基準
+  const min = 12;         // 最小
+  poemEl.style.fontSize = size + "px";
+
+  // はみ出していたら縮める（最大30回）
+  let tries = 0;
+  while (tries < 30 && (bodyEl.scrollHeight > leaf.clientHeight)) {
+    size -= 0.5;
+    if (size < min) break;
+    poemEl.style.fontSize = size + "px";
+    tries++;
+  }
 }
 
 
@@ -131,45 +143,45 @@ function clampIndex(i) {
 }
 
 function bindEvents() {
-  // 和書の進行に合わせた操作系
-  nextBtn.addEventListener('click', next);
-  prevBtn.addEventListener('click', prev);
-  tocBtn.addEventListener('click', showTOC);
+  // 既存のボタン類は使わない（CSSで非表示）
+  prevBtn && prevBtn.removeEventListener('click', prev);
+  nextBtn && nextBtn.removeEventListener('click', next);
+  tocBtn && tocBtn.addEventListener('click', showTOC);
 
-  // タップゾーン：左タップ=次へ（和書の感覚）、右タップ=前へ
-  tapLeft.addEventListener('click', next);
-  tapRight.addEventListener('click', prev);
+  const surface = document.getElementById('reader'); // 画面全体でスワイプ
+  let touching = false, sx = 0, sy = 0;
 
-  // キー操作（← →）
-  window.addEventListener('keydown', (e) => {
-    if (tocEl && !tocEl.classList.contains('hidden')) return;
-    if (e.key === 'ArrowLeft')  next();
-    if (e.key === 'ArrowRight') prev();
-  });
-
-  // スワイプ（左へスワイプ＝次へ）
-  let touching = false;
-  pageEl.addEventListener('touchstart', (e) => {
+  surface.addEventListener('touchstart', (e) => {
     touching = true;
-    state.touch.x = e.touches[0].clientX;
-    state.touch.y = e.touches[0].clientY;
+    sx = e.touches[0].clientX;
+    sy = e.touches[0].clientY;
   }, { passive: true });
 
-  pageEl.addEventListener('touchmove', (e) => {}, { passive: true });
-
-  pageEl.addEventListener('touchend', (e) => {
+  surface.addEventListener('touchmove', (e) => {
     if (!touching) return;
-    const dx = (e.changedTouches[0].clientX - state.touch.x);
-    touching = false;
-    if (dx < -40) next();       // 左へスワイプ → 次へ（和書）
-    if (dx >  40) prev();       // 右へスワイプ → 前へ
-  });
+    const dx = e.touches[0].clientX - sx;
+    const dy = e.touches[0].clientY - sy;
+    // 横スワイプ中は縦スクロールを抑止
+    if (Math.abs(dx) > Math.abs(dy)) e.preventDefault();
+  }, { passive: false });
 
-  // iPadのアドレスバーで高さが変わっても崩れにくく
-  window.addEventListener('resize', () => {
-    // 必要なら高さ調整や再レイアウトをここで
-  });
+  surface.addEventListener('touchend', (e) => {
+    if (!touching) return;
+    touching = false;
+    const dx = e.changedTouches[0].clientX - sx;
+    const dy = e.changedTouches[0].clientY - sy;
+    const TH = 40; // 判定しきい値(px)
+
+    if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > TH) {
+      if (dx < 0) next(); // 左へスワイプ＝次へ（和書）
+      else prev();        // 右へスワイプ＝前へ
+    }
+  }, { passive: false });
+
+  // 画面サイズ変化（回転など）で再描画
+  window.addEventListener('resize', () => render());
 }
+
 
 function escapeHTML(s="") {
   return s.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
