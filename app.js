@@ -1,9 +1,11 @@
+// ==== 状態 ====
 const state = {
   poems: [],
   index: 0,
   touch: { x: 0, y: 0 }
 };
 
+// ==== 要素 ====
 const pageEl   = document.getElementById('page');
 const titleEl  = document.getElementById('poemTitle');
 const progEl   = document.getElementById('progress');
@@ -11,34 +13,39 @@ const prevBtn  = document.getElementById('prevBtn');
 const nextBtn  = document.getElementById('nextBtn');
 const tocBtn   = document.getElementById('tocBtn');
 const tocEl    = document.getElementById('toc');
-const tapLeft  = document.getElementById('tapLeft');
-const tapRight = document.getElementById('tapRight');
 
+// ==== 初期化 ====
 init();
 
 async function init() {
   try {
-    const res = await fetch('./poems.json?v=10', { cache: 'no-store' });
+    const res = await fetch('./poems.json?v=11', { cache: 'no-store' });
     state.poems = await res.json();
+    if (!Array.isArray(state.poems) || state.poems.length === 0) {
+      throw new Error('no poems');
+    }
   } catch (e) {
     console.error(e);
-    state.poems = [{ id:"err", title:"読み込み失敗", body:"poems.json が見つかりません。" }];
+    state.poems = [{ id:"err", title:"読み込み失敗", body:"poems.json を確認してください。", keywords:[] }];
   }
   render();
   bindEvents();
 }
 
+// ==== レンダリング（1見開き = 1篇） ====
 function render() {
   const p = clampIndex(state.index);
   const poem = state.poems[p];
+
   titleEl.textContent = poem.title || "無題";
 
-  // 見開きクラスを常時付与（横向き運用）
+  // 見開き用クラスを付与（横向き運用）
   pageEl.classList.add('spread');
 
   // 本文を二分割（右→左）。短文は右だけ。
   const halves = splitBody(poem.body);
 
+  // ✨ ここで「同じ詩だけ」を右左に表示（次の詩は出しません！）
   pageEl.innerHTML = `
     <section class="leaf right">
       <article class="poem" aria-label="${escapeAttr(poem.title)}">
@@ -53,7 +60,7 @@ function render() {
     </section>
   `;
 
-  // 文字量が多い場合でも縦スクロールせず、字サイズを自動微調整
+  // 文字が溢れないよう自動で微縮小（縦スクロール禁止のため）
   fitToLeaf(document.querySelector('.leaf.right .poem'));
   if (halves.left) fitToLeaf(document.querySelector('.leaf.left .poem'));
 
@@ -61,55 +68,17 @@ function render() {
   buildTOC();
 }
 
-function splitBody(body="") {
-  const lines = body.replace(/\r\n?/g, "\n").split("\n");
-  if (lines.length <= 12) {
-    // 短い詩は右ページだけに載せて左は空
-    return { right: body, left: "" };
-  }
-  // 中央付近で気持ちよく切る（空行/句点の近くを優先）
-  const mid = Math.ceil(lines.length / 2);
-  let cut = mid;
-  for (let d = 0; d < Math.min(6, lines.length); d++) {
-    const i1 = mid - d, i2 = mid + d;
-    const ok1 = i1 > 1 && (/^[\s　]*$/.test(lines[i1]) || /[。．！？!.?、，,：:；;]$/.test((lines[i1-1]||"").trim()));
-    const ok2 = i2 < lines.length-1 && (/^[\s　]*$/.test(lines[i2]) || /[。．！？!.?、，,：:；;]$/.test((lines[i2-1]||"").trim()));
-    if (ok1) { cut = i1; break; }
-    if (ok2) { cut = i2; break; }
-  }
-  const right = lines.slice(0, cut).join("\n").trimEnd();
-  const left  = lines.slice(cut).join("\n").trimStart();
-  return { right, left };
+function clampIndex(i) {
+  return Math.min(Math.max(i, 0), state.poems.length - 1);
 }
 
-function fitToLeaf(poemEl) {
-  if (!poemEl) return;
-  const leaf = poemEl.closest('.leaf');
-  if (!leaf) return;
-  const bodyEl = poemEl;
-
-  // 基準フォントサイズ（px）を徐々に下げる
-  let size = 18;          // 基準
-  const min = 12;         // 最小
-  poemEl.style.fontSize = size + "px";
-
-  // はみ出していたら縮める（最大30回）
-  let tries = 0;
-  while (tries < 30 && (bodyEl.scrollHeight > leaf.clientHeight)) {
-    size -= 0.5;
-    if (size < min) break;
-    poemEl.style.fontSize = size + "px";
-    tries++;
-  }
-}
-
-
+// ==== 目次 ====
 function buildTOC() {
   if (!tocEl.dataset.built) {
     const items = state.poems.map((p, i) =>
       `<li><button data-goto="${i}">${escapeHTML(p.title || "無題")}</button></li>`
     ).join("");
-    tocEl.innerHTML = `<h2>目次</h2><ul>${items}</ul><div style="margin-top:16px;"><button class="btn" id="tocClose">閉じる</button></div>`;
+    tocEl.innerHTML = `<h2>目次</h2><ul style="list-style:none;padding:0;margin:0;columns:2;gap:24px;">${items}</ul><div style="margin-top:16px;"><button class="btn" id="tocClose">閉じる</button></div>`;
     tocEl.dataset.built = "1";
     tocEl.addEventListener('click', (e) => {
       const btn = e.target.closest('button[data-goto]');
@@ -122,28 +91,26 @@ function buildTOC() {
     });
   }
 }
-
 function showTOC() { tocEl.classList.remove('hidden'); }
 function hideTOC() { tocEl.classList.add('hidden'); }
 
+// ==== ナビ（和書仕様：次へ＝indexを減らす） ====
 function next() {
-  if (state.index > 0) { // 和書の進行：新しいページは左へ（= 次へでindexを減らす）
-    state.index -= 1;
+  if (state.index > 0) {
+    state.index -= 1;     // 左ページへ（新しいページへ）
     render();
   }
 }
 function prev() {
   if (state.index < state.poems.length - 1) {
-    state.index += 1;
+    state.index += 1;     // 右ページへ（前のページへ）
     render();
   }
 }
-function clampIndex(i) {
-  return Math.min(Math.max(i, 0), state.poems.length - 1);
-}
 
+// ==== スワイプのみ（タップ無効） ====
 function bindEvents() {
-  // 既存のボタン類は使わない（CSSで非表示）
+  // ボタンは無効化（CSSでも非表示）
   prevBtn && prevBtn.removeEventListener('click', prev);
   nextBtn && nextBtn.removeEventListener('click', next);
   tocBtn && tocBtn.addEventListener('click', showTOC);
@@ -161,8 +128,7 @@ function bindEvents() {
     if (!touching) return;
     const dx = e.touches[0].clientX - sx;
     const dy = e.touches[0].clientY - sy;
-    // 横スワイプ中は縦スクロールを抑止
-    if (Math.abs(dx) > Math.abs(dy)) e.preventDefault();
+    if (Math.abs(dx) > Math.abs(dy)) e.preventDefault(); // 縦スクロール抑止
   }, { passive: false });
 
   surface.addEventListener('touchend', (e) => {
@@ -170,19 +136,50 @@ function bindEvents() {
     touching = false;
     const dx = e.changedTouches[0].clientX - sx;
     const dy = e.changedTouches[0].clientY - sy;
-    const TH = 40; // 判定しきい値(px)
-
+    const TH = 40;
     if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > TH) {
-      if (dx < 0) next(); // 左へスワイプ＝次へ（和書）
-      else prev();        // 右へスワイプ＝前へ
+      if (dx < 0) next(); else prev();
     }
   }, { passive: false });
 
-  // 画面サイズ変化（回転など）で再描画
   window.addEventListener('resize', () => render());
 }
 
+// ==== 本文分割（右→左） ====
+function splitBody(body="") {
+  const lines = body.replace(/\r\n?/g, "\n").split("\n");
+  if (lines.length <= 12) return { right: body, left: "" };
 
+  const mid = Math.ceil(lines.length / 2);
+  let cut = mid;
+  for (let d = 0; d < Math.min(6, lines.length); d++) {
+    const i1 = mid - d, i2 = mid + d;
+    const ok1 = i1 > 1 && (/^[\s　]*$/.test(lines[i1]) || /[。．！？!.?、，,：:；;]$/.test((lines[i1-1]||"").trim()));
+    const ok2 = i2 < lines.length-1 && (/^[\s　]*$/.test(lines[i2]) || /[。．！？!.?、，,：:；;]$/.test((lines[i2-1]||"").trim()));
+    if (ok1) { cut = i1; break; }
+    if (ok2) { cut = i2; break; }
+  }
+  const right = lines.slice(0, cut).join("\n").trimEnd();
+  const left  = lines.slice(cut).join("\n").trimStart();
+  return { right, left };
+}
+
+// ==== 縦スクロール無しで収める（自動微縮小） ====
+function fitToLeaf(poemEl) {
+  if (!poemEl) return;
+  const leaf = poemEl.closest('.leaf');
+  if (!leaf) return;
+  let size = 18, min = 12, tries = 0;
+  poemEl.style.fontSize = size + "px";
+  while (tries < 30 && (poemEl.scrollHeight > leaf.clientHeight)) {
+    size -= 0.5;
+    if (size < min) break;
+    poemEl.style.fontSize = size + "px";
+    tries++;
+  }
+}
+
+// ==== ヘルパ ====
 function escapeHTML(s="") {
   return s.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 }

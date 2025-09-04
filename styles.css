@@ -210,5 +210,58 @@ html, body { overscroll-behavior: contain; touch-action: pan-x; }
     display: grid; place-items: center; height: 100dvh; color: #666;
   }
 }
+/* ボタン・タップゾーンは隠す（スワイプ運用） */
+.bottombar, .topbar .btn, .tapzone { display: none !important; }
+
+/* 縦スクロールを止める（横だけ） */
+html, body { overscroll-behavior: contain; touch-action: pan-x; }
+.reader { height: 100dvh; overflow: hidden; }
+
+/* 横向き：見開きを横並びに */
+@media (orientation: landscape) {
+  .page.spread {
+    writing-mode: horizontal-tb;
+    text-orientation: mixed;
+    display: flex;
+    flex-direction: row;
+    gap: 24px;
+    margin: 0 auto;
+    width: min(100%, var(--maxw));
+    height: 100%;
+    justify-content: center;
+    background: transparent;
+    box-shadow: none;
+    padding: 0;
+    overflow: hidden;
+  }
+  .leaf {
+    flex: 1 1 0;
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 6px 30px rgba(0,0,0,.08);
+    padding: 20px 24px;
+    writing-mode: vertical-rl;
+    text-orientation: upright;
+    line-height: 2;
+    position: relative;
+    height: 86vh;
+    overflow: hidden;
+  }
+  .leaf.right::after, .leaf.left::after {
+    content: ""; position: absolute; top:0; bottom:0; width:24px; pointer-events:none;
+  }
+  .leaf.right::after { left:-24px;  background: radial-gradient(ellipse at left, rgba(0,0,0,.12), rgba(0,0,0,0) 60%); }
+  .leaf.left::after  { right:-24px; background: radial-gradient(ellipse at right, rgba(0,0,0,.12), rgba(0,0,0,0) 60%); }
+  .leaf .poem { margin: 0 auto; padding-block: 20%; padding-inline: 10%; }
+}
+
+/* 縦向きは注意表示（横向きで見せたい運用） */
+@media (orientation: portrait) {
+  .page { display: none; }
+  body::before {
+    content: "横向きでご覧ください";
+    display: grid; place-items: center; height: 100dvh; color: #666;
+  }
+}
 
 
