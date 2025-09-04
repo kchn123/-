@@ -33,15 +33,64 @@ function render() {
   const poem = state.poems[p];
 
   titleEl.textContent = poem.title || "無題";
-  pageEl.innerHTML = `
-    <article class="poem" role="article" aria-label="${escapeAttr(poem.title)}">
-      <h1 style="margin-block:0 1em; font-size:1.1rem; letter-spacing: .05em;">${escapeHTML(poem.title)}</h1>
-      <div style="white-space:pre-wrap;">${escapeHTML(poem.body)}</div>
-    </article>
-  `;
+
+  // 横向き＝見開き（右→左）。縦向き＝1ページ。
+  if (window.innerWidth > window.innerHeight) {
+    // 見開き用に本文をざっくり二分割（行数ベース）
+    const halves = splitBody(poem.body);
+    pageEl.classList.add('spread');
+    pageEl.innerHTML = `
+      <!-- 右ページ（先に読む） -->
+      <section class="leaf right">
+        <article class="poem" role="article" aria-label="${escapeAttr(poem.title)}">
+          <h1 style="margin-block:0 1em; font-size:1.1rem; letter-spacing:.05em;">${escapeHTML(poem.title)}</h1>
+          <div style="white-space:pre-wrap;">${escapeHTML(halves.right)}</div>
+        </article>
+      </section>
+
+      <!-- 左ページ（次に読む）。空なら非表示 -->
+      <section class="leaf left" style="${halves.left ? '' : 'display:none;'}">
+        <article class="poem" role="article" aria-label="${escapeAttr(poem.title)}（続き）">
+          <div style="white-space:pre-wrap;">${escapeHTML(halves.left)}</div>
+        </article>
+      </section>
+    `;
+  } else {
+    // 1ページ表示（これまで通り）
+    pageEl.classList.remove('spread');
+    pageEl.innerHTML = `
+      <article class="poem" role="article" aria-label="${escapeAttr(poem.title)}">
+        <h1 style="margin-block:0 1em; font-size:1.1rem; letter-spacing:.05em;">${escapeHTML(poem.title)}</h1>
+        <div style="white-space:pre-wrap;">${escapeHTML(poem.body)}</div>
+      </article>
+    `;
+  }
+
   progEl.textContent = `${p+1} / ${state.poems.length}`;
   buildTOC();
 }
+function splitBody(body="") {
+  const lines = body.replace(/\r\n?/g, "\n").split("\n");
+  if (lines.length <= 12) {
+    // 短い詩は右ページだけに載せて左は空
+    return { right: body, left: "" };
+  }
+  // できるだけ行の途中で切らないで中央付近で分割
+  const mid = Math.ceil(lines.length / 2);
+  // 句読点や空行の近くで優先的に切る（簡易ロジック）
+  let cut = mid;
+  for (let d = 0; d < Math.min(6, lines.length); d++) {
+    const i1 = mid - d, i2 = mid + d;
+    const ok1 = i1 > 1 && /^[\s　]*$/.test(lines[i1]) || /[。．！？!.?、，,：:；;]$/.test((lines[i1-1]||"").trim());
+    const ok2 = i2 < lines.length-1 && /^[\s　]*$/.test(lines[i2]) || /[。．！？!.?、，,：:；;]$/.test((lines[i2-1]||"").trim());
+    if (ok1) { cut = i1; break; }
+    if (ok2) { cut = i2; break; }
+  }
+  const right = lines.slice(0, cut).join("\n").trimEnd();
+  const left  = lines.slice(cut).join("\n").trimStart();
+  return { right, left };
+}
+
 
 function buildTOC() {
   if (!tocEl.dataset.built) {

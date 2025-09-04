@@ -95,3 +95,56 @@ body {
   .topbar    { padding-top: calc(10px + env(safe-area-inset-top)); }
   .bottombar { padding-bottom: calc(10px + env(safe-area-inset-bottom)); }
 }
+/* ===== 見開きレイアウト（横向き） ===== */
+@media (orientation: landscape) {
+  .page {
+    background: transparent;
+    box-shadow: none;
+    padding: 0;
+  }
+  .page.spread {
+    display: flex;
+    gap: 24px;                /* 背（のど）の幅 */
+    margin: 0 auto;
+    width: min(100%, var(--maxw));
+    justify-content: center;
+  }
+
+  .leaf {
+    flex: 1 1 0;
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 6px 30px rgba(0,0,0,.08);
+    padding: 20px 24px;
+    writing-mode: vertical-rl;
+    text-orientation: upright;
+    line-height: 2;
+    position: relative;
+    min-height: 70vh;         /* 縦の見た目を安定させる */
+  }
+
+  /* 和書の雰囲気：内側の影（のどの陰） */
+  .leaf.right::after,
+  .leaf.left::after {
+    content: "";
+    position: absolute;
+    top: 0; bottom: 0; width: 24px;
+    pointer-events: none;
+  }
+  .leaf.right::after { /* 右ページの内側に陰 */
+    left: -24px;
+    background: radial-gradient(ellipse at left, rgba(0,0,0,.12), rgba(0,0,0,0) 60%);
+  }
+  .leaf.left::after {  /* 左ページの内側に陰 */
+    right: -24px;
+    background: radial-gradient(ellipse at right, rgba(0,0,0,.12), rgba(0,0,0,0) 60%);
+  }
+
+  /* 詩ブロックの内側余白（上20% / 下10% 風） */
+  .leaf .poem {
+    margin: 0 auto;
+    padding-block: 20%;
+    padding-inline: 10%;
+  }
+}
+
