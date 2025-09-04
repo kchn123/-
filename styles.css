@@ -263,5 +263,51 @@ html, body { overscroll-behavior: contain; touch-action: pan-x; }
     display: grid; place-items: center; height: 100dvh; color: #666;
   }
 }
+:root {
+  --bg: #f7f5f2;
+  --ink: #222;
+  --muted: #777;
+  --panel: #ffffffc0;
+  --maxw: 1100px; /* 見開き幅 */
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;font-family:"Hiragino Mincho ProN","Yu Mincho","Hiragino Kaku Gothic ProN",serif}
+.reader{min-height:100dvh;display:grid;grid-template-rows:auto 1fr auto}
+.topbar,.bottombar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--panel);backdrop-filter:blur(6px);position:sticky}
+.topbar{top:0}.bottombar{bottom:0}
+.page{margin:0 auto;width:min(100%,var(--maxw));padding:20px 24px;background:#fff;border-radius:16px;box-shadow:0 6px 30px rgba(0,0,0,.08);writing-mode:vertical-rl;text-orientation:upright;line-height:2;display:block;overflow:auto}
+.page .poem{margin:0 auto;padding-block:20%;padding-inline:10%}
+.toc{position:fixed;inset:0;background:rgba(255,255,255,.96);padding:24px;overflow:auto}
+.toc.hidden{display:none}
+.toc ul{list-style:none;margin:0;padding:0;columns:2;gap:24px}
+.tapzone{position:fixed;top:0;bottom:0;width:35%}.tapzone.left{left:0}.tapzone.right{right:0}
+.progress{color:var(--muted);font-variant-numeric:tabular-nums}
+
+/* ここから “横向き・見開き・スワイプ専用” の上書き */
+.bottombar,.topbar .btn,.tapzone{display:none!important}
+html,body{overscroll-behavior:contain;touch-action:pan-x}
+.reader{height:100dvh;overflow:hidden}
+
+@media (orientation: landscape){
+  .page.spread{
+    writing-mode:horizontal-tb;text-orientation:mixed;
+    display:flex;flex-direction:row;gap:24px;margin:0 auto;width:min(100%,var(--maxw));height:100%;
+    justify-content:center;background:transparent;box-shadow:none;padding:0;overflow:hidden
+  }
+  .leaf{
+    flex:1 1 0;background:#fff;border-radius:16px;box-shadow:0 6px 30px rgba(0,0,0,.08);
+    padding:20px 24px;writing-mode:vertical-rl;text-orientation:upright;line-height:2;position:relative;height:86vh;overflow:hidden
+  }
+  .leaf.right::after,.leaf.left::after{content:"";position:absolute;top:0;bottom:0;width:24px;pointer-events:none}
+  .leaf.right::after{left:-24px;background:radial-gradient(ellipse at left,rgba(0,0,0,.12),rgba(0,0,0,0) 60%)}
+  .leaf.left::after{right:-24px;background:radial-gradient(ellipse at right,rgba(0,0,0,.12),rgba(0,0,0,0) 60%)}
+  .leaf .poem{margin:0 auto;padding-block:20%;padding-inline:10%}
+}
+
+@media (orientation: portrait){
+  .page{display:none}
+  body::before{content:"横向きでご覧ください";display:grid;place-items:center;height:100dvh;color:#666}
+}
 
 
