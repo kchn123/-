@@ -103,12 +103,14 @@ body {
     padding: 0;
   }
   .page.spread {
-    display: flex;
-    gap: 24px;                /* 背（のど）の幅 */
-    margin: 0 auto;
-    width: min(100%, var(--maxw));
-    justify-content: center;
-  }
+  display: flex;        /* ← ここをflexにするのがポイント！ */
+  flex-direction: row;  /* 横並び */
+  gap: 24px;            /* 真ん中の「のど」の幅 */
+  margin: 0 auto;
+  width: min(100%, var(--maxw));
+  justify-content: center;
+}
+
 
   .leaf {
     flex: 1 1 0;
